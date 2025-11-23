@@ -9,7 +9,6 @@ public class TrialRoute {
     public TrialLocations Location;
     public TrialRanks Rank;
     public List<WorldPoint> Points;
-    public int ToadsPerPickup;
     public List<ToadFlagColors> ToadOrder;
 
     public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points) {
@@ -19,9 +18,8 @@ public class TrialRoute {
         ToadOrder = null;
     }
 
-    public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points, int toadsPerPickup, List<ToadFlagColors> toadOrder) {
+    public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points, List<ToadFlagColors> toadOrder) {
         this(location, rank, points);
-        ToadsPerPickup = toadsPerPickup;
         ToadOrder = toadOrder;
     }
 

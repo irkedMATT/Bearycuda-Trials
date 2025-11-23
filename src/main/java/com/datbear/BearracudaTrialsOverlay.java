@@ -51,10 +51,7 @@ public class BearracudaTrialsOverlay extends Overlay {
         if (player == null)
             return null;
 
-        final var playerLoc = WorldPerspective.getInstanceWorldPointFromReal(
-                client,
-                client.getTopLevelWorldView(),
-                player.getWorldLocation());
+        var playerLoc = BoatLocation.fromLocal(client, player.getLocalLocation());
         if (playerLoc == null)
             return null;
 
@@ -68,6 +65,10 @@ public class BearracudaTrialsOverlay extends Overlay {
             return null;
         }
 
+        var boatLoc = BoatLocation.fromLocal(client, player.getLocalLocation());
+
+        highlightToadFlags(graphics, boatLoc);
+
         // Draw only the next up-to-5 waypoints (linear polyline beginning at the player's instance location).
         var visible = plugin.getVisibleActiveLineForPlayer(playerLoc, 5);
         if (visible.size() >= 2) {
@@ -75,7 +76,7 @@ public class BearracudaTrialsOverlay extends Overlay {
         }
 
         // Render markers/labels for the next unvisited targets
-        var nextIndices = plugin.getNextUnvisitedIndicesForActiveRoute(playerLoc, 5);
+        var nextIndices = plugin.getNextUnvisitedIndicesForActiveRoute(5);
         for (int idx : nextIndices) {
             if (active.Points == null || idx < 0 || idx >= active.Points.size())
                 continue;
@@ -92,24 +93,14 @@ public class BearracudaTrialsOverlay extends Overlay {
             renderLineDots(graphics, wp, GREEN, idx, p);
         }
 
-        // Draw a single line from the player's boat location to the first
-        // unvisited waypoint (if any) — uses top-level worldview mapping for
-        // the target so we connect boat -> first target correctly.
-        var boatLoc = BoatLocation.fromLocal(client, player.getLocalLocation());
-        if (boatLoc != null) {
-            var next = plugin.getNextUnvisitedIndicesForActiveRoute(boatLoc, 1);
+        // Draw a single line from the player's boat location to the first unvisited waypoint (if any)
+        if (boatLoc != null && plugin.getActiveTrialRoute() != null) {
+            var next = plugin.getNextUnvisitedIndicesForActiveRoute(1);
             if (!next.isEmpty() && active.Points != null && next.get(0) < active.Points.size()) {
                 var real = active.Points.get(next.get(0));
-                var instp = WorldPerspective
-                        .getInstanceWorldPointFromReal(client, client.getTopLevelWorldView(), real);
-                if (instp != null) {
-                    java.util.List<WorldPoint> two = java.util.List.of(boatLoc, instp);
-                    WorldLines.drawLinesOnWorld(
-                            graphics,
-                            client,
-                            two,
-                            Color.CYAN,
-                            boatLoc.getPlane());
+                if (real != null) {
+                    var two = java.util.List.of(boatLoc, real);
+                    WorldLines.drawLinesOnWorld(graphics, client, two, Color.CYAN, boatLoc.getPlane());
                 }
             }
         }
@@ -119,10 +110,6 @@ public class BearracudaTrialsOverlay extends Overlay {
         }
         return null;
     }
-
-    // Old route-specific rendering helpers removed — overlay now works against
-    // generic TrialRoute data through the plugin's getVisibleLineForRoute and
-    // getNextUnvisitedIndicesForRoute helper methods.
 
     private void renderLineDots(Graphics2D graphics, WorldPoint wp, Color color, int i,
             Point start) {
@@ -166,5 +153,23 @@ public class BearracudaTrialsOverlay extends Overlay {
             graphics.drawString("active route = null", x, y += 15);
         }
         graphics.drawString("last visited idx = " + plugin.getLastVisitedIndex(), x, y += 15);
+        graphics.drawString("toad flag idx = " + plugin.getHighlightedToadFlagIndex(), x, y += 15);
     }
+
+    private void highlightToadFlags(Graphics2D graphics, WorldPoint player) {
+        // Highlight toad flags
+        var toadGameObjects = plugin.getToadFlagToHighlight();
+        if (toadGameObjects == null || toadGameObjects.isEmpty()) {
+            return;
+        }
+
+        for (var toadGameObject : toadGameObjects) {
+            // if (toadGameObject == null || toadGameObject.getWorldLocation() == null) {
+            //     continue;
+            // }
+            modelOutlineRenderer.drawOutline(toadGameObject, 2, Color.MAGENTA, 2);
+        }
+
+    }
+
 }

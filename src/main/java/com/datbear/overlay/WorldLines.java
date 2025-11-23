@@ -65,8 +65,7 @@ public class WorldLines {
         DirectionArrow.drawLine(graphics, line, color, WorldPerspective.getWorldMapClipArea(client));
     }
 
-    public static void drawLinesOnWorld(Graphics2D graphics, Client client, List<WorldPoint> linePoints, Color color,
-            int z) {
+    public static void drawLinesOnWorld(Graphics2D graphics, Client client, List<WorldPoint> linePoints, Color color, int z) {
         if (linePoints == null || linePoints.size() < 2) {
             return;
         }

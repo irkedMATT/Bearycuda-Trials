@@ -233,11 +233,10 @@ public class BearracudaTrialsPlugin extends Plugin {
     );
 
     private static final List<ToadFlagColors> JubblySharkToadOrder = List.of(
-            ToadFlagColors.Pickup,
             ToadFlagColors.Yellow,
             ToadFlagColors.Red,
-            ToadFlagColors.Yellow,
-            ToadFlagColors.Green,
+            ToadFlagColors.Orange,
+            ToadFlagColors.Teal,
             ToadFlagColors.Pink,
             ToadFlagColors.White,
             ToadFlagColors.Blue,
@@ -247,14 +246,29 @@ public class BearracudaTrialsPlugin extends Plugin {
             ToadFlagColors.White //fin
     );
 
+    private static final List<WorldPoint> JubblyMarlinBestLine = List.of(
+            new WorldPoint(2436, 3018, 0),
+
+            new WorldPoint(2436, 3023, 0) // end
+    );
+
+    private static final List<ToadFlagColors> JubblyMarlinToadOrder = List.of(
+
+    //
+    );
+
     @Getter(AccessLevel.PACKAGE)
     private static final List<TrialRoute> AllTrialRoutes = List.of(
             new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Swordfish, TemporTantrumSwordfishBestLine),
             new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Marlin, TemporTantrumMarlinBestLine),
-            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Shark, JubblySharkBestLine, 12, JubblySharkToadOrder));
+            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Shark, JubblySharkBestLine, JubblySharkToadOrder),
+            new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Marlin, JubblyMarlinBestLine, JubblyMarlinToadOrder));
 
     @Getter(AccessLevel.PACKAGE)
     private int lastVisitedIndex = -1;
+
+    @Getter(AccessLevel.PACKAGE)
+    private int toadsThrown = 0;
 
     private static final int VISIT_TOLERANCE = 6;
 
@@ -311,15 +325,9 @@ public class BearracudaTrialsPlugin extends Plugin {
         return out;
     }
 
-    private final Set<Integer> TRIAL_CRATE_PROJECTILE_IDS = Set.of(3497);// crates spawn this projectile when hit
-
-    private final Set<Integer> TRIAL_RUM_PROJECTILE_IDS = Set.of(3501);// rum boats spawn this projectile when clicked
-    private final Set<Integer> SPEED_BOOST_IDS = Set.of(60352);
-
-    private final Set<Integer> OBSTACLE_IDS = Set.of(60442, 60444, 60443, 60468, 60452);
-
-    private final Set<Integer> TRIAL_CRATE_ANIMS = Set.of(8867);
-    private final Set<Integer> SPEED_BOOST_ANIMS = Set.of(13159);
+    // Cache of currently-spawning GameObjects keyed by object id. We only track
+    // objects whose ids appear in any ToadFlagGameObject.All GameObjectIds set.
+    private final Map<Integer, List<GameObject>> gameObjectCacheById = new HashMap<>();
 
     // last position where the menu was opened (canvas coordinates) — used for debug 'Copy tile worldpoint'
     // so we copy according to menu-open location instead of where the mouse is at click time.
@@ -356,17 +364,20 @@ public class BearracudaTrialsPlugin extends Plugin {
         if (client == null || client.getLocalPlayer() == null) {
             return;
         }
-        TrialRoute prevActive = getActiveTrialRoute();
-        TrialInfo trialInfo = TrialInfo.getCurrent(client);
-        if (trialInfo != null) {
-            currentTrial = trialInfo;
-            TrialRoute newActive = getActiveTrialRoute();
-            if (prevActive != newActive) {
-                // Route actually changed: reset single index tracker
-                lastVisitedIndex = -1;
-                log.info("Active route changed; resetting lastVisitedIndex (prev={}, new={})", prevActive == null ? "null" : prevActive.Rank, newActive == null ? "null" : newActive.Rank);
+        TrialRoute prevActiveRoute = getActiveTrialRoute();
+        TrialInfo newTrialInfo = TrialInfo.getCurrent(client);
+        if (newTrialInfo != null) {
+            TrialRoute newActiveRoute = getActiveTrialRoute();
+            if (prevActiveRoute != newActiveRoute) {
+                resetRouteData();
+                log.info("Active route changed; resetting lastVisitedIndex (prev={}, new={})", prevActiveRoute == null ? "null" : prevActiveRoute.Rank, newActiveRoute == null ? "null" : newActiveRoute.Rank);
             }
+            updateToadsThrown(newTrialInfo);
+        } else if (currentTrial != null) {
+            log.info("No active trial detected - resetting lastVisitedIndex.");
+            resetRouteData();
         }
+        currentTrial = newTrialInfo;
 
         final var player = client.getLocalPlayer();
         var playerPoint = BoatLocation.fromLocal(client, player.getLocalLocation());
@@ -380,43 +391,49 @@ public class BearracudaTrialsPlugin extends Plugin {
         }
     }
 
-    public TrialRoute getActiveTrialRoute() {
-        if (currentTrial == null)
-            return null;
-
-        for (TrialRoute r : AllTrialRoutes) {
-            if (r == null)
-                continue;
-            if (r.Location == currentTrial.Location && r.Rank == currentTrial.Rank)
-                return r;
-        }
-        return null;
+    private void resetRouteData() {
+        lastVisitedIndex = -1;
+        toadsThrown = 0;
     }
 
-    public List<WorldPoint> getVisibleActiveLineForPlayer(final WorldPoint player, final int limit) {
-        var rt = getActiveTrialRoute();
-        if (rt == null)
-            return Collections.emptyList();
-
-        // Route-agnostic: delegate to generic per-route logic
-        return getVisibleLineForRoute(player, rt, limit);
-    }
-
-    public List<Integer> getNextUnvisitedIndicesForActiveRoute(final WorldPoint player, final int limit) {
-        var rt = getActiveTrialRoute();
-        if (rt == null) {
-            return Collections.emptyList();
+    private void updateToadsThrown(TrialInfo newTrialInfo) {
+        if (currentTrial == null) {
+            toadsThrown = 0;
+            return;
         }
-        return getNextIndicesAfterLastVisited(rt, limit);
+        if (newTrialInfo.ToadCount < currentTrial.ToadCount) {
+            toadsThrown += 1;
+        }
     }
 
     @Subscribe
     public void onGameObjectSpawned(GameObjectSpawned event) {
-        // logCrateBoostSpawns(event);
+        GameObject obj = event.getGameObject();
+        if (obj == null)
+            return;
+        int id = obj.getId();
+        // Only cache objects that match any ToadFlagGameObject ids
+        boolean isToadFlag = ToadFlagGameObject.All.stream().anyMatch(t -> t.GameObjectIds.contains(id));
+        if (isToadFlag) {
+            gameObjectCacheById.computeIfAbsent(id, k -> new ArrayList<>()).add(obj);
+            log.info("Cached gameobject spawn id={} -> totalCount={}", id, gameObjectCacheById.get(id).size());
+        }
     }
 
     @Subscribe
     public void onGameObjectDespawned(GameObjectDespawned event) {
+        GameObject obj = event.getGameObject();
+        if (obj == null)
+            return;
+        int id = obj.getId();
+        List<GameObject> list = gameObjectCacheById.get(id);
+        if (list != null) {
+            list.removeIf(x -> x == null || x.getHash() == obj.getHash());
+            if (list.isEmpty()) {
+                gameObjectCacheById.remove(id);
+            }
+            log.info("Cached gameobject despawn id={} -> remaining={}", id, gameObjectCacheById.getOrDefault(id, Collections.emptyList()).size());
+        }
     }
 
     @Subscribe
@@ -431,13 +448,12 @@ public class BearracudaTrialsPlugin extends Plugin {
     @Subscribe
     public void onNpcSpawned(NpcSpawned npcSpawned) {
         NPC npc = npcSpawned.getNpc();
-
     }
 
     @Subscribe
     public void onGameStateChanged(GameStateChanged event) {
         if (event.getGameState() == GameState.LOADING) {
-            // on region changes the tiles get set to null
+            // on region changes the tiles and gameobjects get set to null
             reset();
         } else if (event.getGameState() == GameState.LOGIN_SCREEN) {
 
@@ -451,11 +467,11 @@ public class BearracudaTrialsPlugin extends Plugin {
 
     @Subscribe
     public void onChatMessage(ChatMessage chatMessage) {
-        if (chatMessage.getType() != ChatMessageType.SPAM
-                && chatMessage.getType() != ChatMessageType.GAMEMESSAGE)
+        if (chatMessage.getType() != ChatMessageType.SPAM && chatMessage.getType() != ChatMessageType.GAMEMESSAGE) {
             return;
+        }
 
-        String msg = chatMessage.getMessage();
+        //var msg = chatMessage.getMessage();
     }
 
     @Subscribe
@@ -490,8 +506,7 @@ public class BearracudaTrialsPlugin extends Plugin {
             // mark event consumed so other handlers don't process it
             event.consume();
         } else if (event.getMenuOption() != null && event.getMenuOption().equals(copyTileOption)) {
-            // Find the scene tile whose canvas polygon contains the menu
-            // position
+            // Find the scene tile whose canvas polygon contains the menu position
             // Use the stored menu-open position; fall back to current mouse pos
             Point mouse = lastMenuCanvasPosition != null ? lastMenuCanvasPosition
                     : client.getMouseCanvasPosition();
@@ -578,41 +593,37 @@ public class BearracudaTrialsPlugin extends Plugin {
         // Make sure we don't add duplicates — but allow adding missing entries
         // separately so both options can be present.
         MenuEntry[] entries = client.getMenuEntries();
-        boolean hasCopyPlayer = false;
-        boolean hasCopyTile = false;
+        boolean hasCopyPlayerLocation = false;
+        boolean hasCopyTileLocation = false;
         if (entries != null) {
             for (MenuEntry me : entries) {
                 if (me == null)
                     continue;
                 if ("Copy worldpoint".equals(me.getOption())) {
-                    hasCopyPlayer = true;
+                    hasCopyPlayerLocation = true;
                 }
                 if ("Copy tile worldpoint".equals(me.getOption())) {
-                    hasCopyTile = true;
+                    hasCopyTileLocation = true;
                 }
             }
         }
 
         var list = new ArrayList<MenuEntry>();
 
-        // Create tile copy entry if missing
-        if (!hasCopyTile) {
+        if (!hasCopyTileLocation) {
             MenuEntry copyTile = client.getMenu().createMenuEntry(-1)
                     .setOption("Copy tile worldpoint").setTarget("").setType(MenuAction.RUNELITE);
             list.add(copyTile);
         }
 
-        // Create player copy entry if missing
-        if (!hasCopyPlayer) {
+        if (!hasCopyPlayerLocation) {
             MenuEntry copyPlayer = client.getMenu().createMenuEntry(-1).setOption("Copy worldpoint")
                     .setTarget("").setType(MenuAction.RUNELITE);
             list.add(copyPlayer);
         }
 
-        // Capture the menu-open canvas position so we can later use that exact
-        // location for "Copy tile worldpoint" when the menu item is clicked.
+        // Capture the menu-open canvas position so we can later use that exact location for "Copy tile worldpoint" when the menu item is clicked.
         lastMenuCanvasPosition = client.getMouseCanvasPosition();
-        // Append existing entries after our added options
         if (entries != null) {
             list.addAll(Arrays.asList(entries));
         }
@@ -626,6 +637,96 @@ public class BearracudaTrialsPlugin extends Plugin {
     }
 
     private void reset() {
+        // Clear runtime caches and tracked state on region change / shutdown
+        gameObjectCacheById.clear();
+    }
+
+    /**
+     * Return a live (unmodifiable) view of cached GameObjects for the given
+     * game object id. Returns empty list if no cached objects.
+     */
+    public List<GameObject> getCachedGameObjectsForId(int id) {
+        var list = gameObjectCacheById.get(id);
+        return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
+    }
+
+    public List<GameObject> getCachedGameObjectsForIds(Set<Integer> ids) {
+        List<GameObject> out = new ArrayList<>();
+        if (ids == null || ids.isEmpty()) {
+            return out;
+        }
+        for (int id : ids) {
+            var list = gameObjectCacheById.get(id);
+            if (list != null && !list.isEmpty()) {
+                out.addAll(list);
+            }
+        }
+        return out;
+    }
+
+    public TrialRoute getActiveTrialRoute() {
+        if (currentTrial == null)
+            return null;
+
+        for (TrialRoute r : AllTrialRoutes) {
+            if (r == null)
+                continue;
+            if (r.Location == currentTrial.Location && r.Rank == currentTrial.Rank)
+                return r;
+        }
+        return null;
+    }
+
+    public List<WorldPoint> getVisibleActiveLineForPlayer(final WorldPoint player, final int limit) {
+        var rt = getActiveTrialRoute();
+        if (rt == null)
+            return Collections.emptyList();
+
+        // Route-agnostic: delegate to generic per-route logic
+        return getVisibleLineForRoute(player, rt, limit);
+    }
+
+    public List<Integer> getNextUnvisitedIndicesForActiveRoute(final int limit) {
+        var rt = getActiveTrialRoute();
+        if (rt == null) {
+            return Collections.emptyList();
+        }
+        return getNextIndicesAfterLastVisited(rt, limit);
+    }
+
+    public int getHighlightedToadFlagIndex() {
+        var route = getActiveTrialRoute();
+        if (route == null || currentTrial == null) {
+            return 0;
+        }
+        return getHighlightedToadFlagIndex(route);
+    }
+
+    private int getHighlightedToadFlagIndex(TrialRoute route) {
+        return toadsThrown < route.ToadOrder.size() ? toadsThrown : 0;
+    }
+
+    public List<GameObject> getToadFlagToHighlight() {
+        if (currentTrial == null || currentTrial.Location != TrialLocations.JubblyJive || currentTrial.ToadCount <= 0) {
+            return Collections.emptyList();
+        }
+
+        var route = getActiveTrialRoute();
+        if (route == null || route.ToadOrder == null || route.ToadOrder.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        var nextToadIdx = getHighlightedToadFlagIndex(route);
+        if (nextToadIdx >= 0 && nextToadIdx < route.ToadOrder.size()) {
+            var nextToadColor = route.ToadOrder.get(nextToadIdx);
+            var nextToadGameObject = ToadFlagGameObject.getByColor(nextToadColor);
+            List<GameObject> cached = getCachedGameObjectsForIds(nextToadGameObject.GameObjectIds);
+            if (!cached.isEmpty()) {
+                return cached;
+            }
+        }
+
+        return Collections.emptyList();
     }
 
     private void logCrateBoostSpawns(GameObjectSpawned event) {
@@ -648,6 +749,9 @@ public class BearracudaTrialsPlugin extends Plugin {
         if (anim == null) {
             return;
         }
+
+        final Set<Integer> TRIAL_CRATE_ANIMS = Set.of(8867);
+        final Set<Integer> SPEED_BOOST_ANIMS = Set.of(13159);
 
         final int animId = anim.getId();
         final boolean isCrateAnim = TRIAL_CRATE_ANIMS.contains(animId);

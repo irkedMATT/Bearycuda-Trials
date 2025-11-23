@@ -30,4 +30,13 @@ public class ToadFlagGameObject {
             Teal,
             Pink,
             White);
+
+    public static ToadFlagGameObject getByColor(ToadFlagColors color) {
+        for (var toadGameObject : All) {
+            if (toadGameObject.Color == color) {
+                return toadGameObject;
+            }
+        }
+        return null;
+    }
 }
