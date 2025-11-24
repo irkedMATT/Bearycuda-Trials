@@ -9,11 +9,11 @@ repositories {
     mavenCentral()
 }
 
-def runeLiteVersion = project.findProperty('runeLiteVersion') ?: '1.12.6'
+def runeLiteVersion = 'latest.release'
 
 dependencies {
     compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
-    
+
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
 
