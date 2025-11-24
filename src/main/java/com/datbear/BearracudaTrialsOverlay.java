@@ -22,8 +22,7 @@ import com.datbear.overlay.WorldPerspective;
 import java.awt.*;
 
 public class BearracudaTrialsOverlay extends Overlay {
-    private static final Color GREEN = new Color(0, 255, 0, 150);
-    private static final Color RED = new Color(255, 0, 0, 150);
+    // Retain legacy constants (unused after config wiring) in case future fallback logic needed.
 
     @Inject
     private ItemManager itemManager;
@@ -68,10 +67,10 @@ public class BearracudaTrialsOverlay extends Overlay {
         renderLastMenuCanvasWorldPointOutline(graphics);
         highlightTrimmableSails(graphics);
 
-        var active = plugin.getActiveTrialRoute();
-        if (active == null) {
+        var route = plugin.getActiveTrialRoute();
+        if (route == null) {
             if (config.showDebugOverlay()) {
-                renderDebugInfo(graphics, active);
+                renderDebugInfo(graphics, route);
             }
             return null;
         }
@@ -84,39 +83,42 @@ public class BearracudaTrialsOverlay extends Overlay {
         renderWindMote(graphics);
         highlightTrialBoat(graphics);
 
-        // Draw only the next up-to-5 waypoints (linear polyline beginning at the player's instance location).
         var visible = plugin.getVisibleActiveLineForPlayer(playerLoc, 5);
-        if (visible.size() >= 2) {
-            WorldLines.drawLinesOnWorld(graphics, client, visible, GREEN, playerLoc.getPlane());
+        if (config.showRouteLines() && visible.size() >= 2) {
+            WorldLines.drawLinesOnWorld(graphics, client, visible, config.routeLineColor(), playerLoc.getPlane());
         }
 
-        // Render markers/labels for the next unvisited targets
-        var nextIndices = plugin.getNextUnvisitedIndicesForActiveRoute(5);
-        for (int idx : nextIndices) {
-            if (active.Points == null || idx < 0 || idx >= active.Points.size())
-                continue;
-            var real = active.Points.get(idx);
-            var wp = WorldPerspective.getInstanceWorldPointFromReal(client, client.getTopLevelWorldView(), real);
-            if (wp == null)
-                continue;
-            var pts = WorldPerspective.worldToCanvasWithOffset(client, wp, wp.getPlane());
-            if (pts.isEmpty())
-                continue;
-            var p = pts.get(0);
-
-            renderLineDots(graphics, wp, GREEN, idx, p);
-        }
+        renderRouteDots(graphics, route);
 
         if (config.showDebugOverlay()) {
-            renderDebugInfo(graphics, active);
+            renderDebugInfo(graphics, route);
         }
         return null;
     }
 
-    private void renderLineDots(Graphics2D graphics, WorldPoint wp, Color color, int i,
-            Point start) {
+    private void renderRouteDots(Graphics2D graphics, TrialRoute route) {
+        var nextIndices = plugin.getNextUnvisitedIndicesForActiveRoute(5);
+        if (config.showRouteDots()) {
+            for (int idx : nextIndices) {
+                if (route.Points == null || idx < 0 || idx >= route.Points.size())
+                    continue;
+                var real = route.Points.get(idx);
+                var wp = WorldPerspective.getInstanceWorldPointFromReal(client, client.getTopLevelWorldView(), real);
+                if (wp == null)
+                    continue;
+                var pts = WorldPerspective.worldToCanvasWithOffset(client, wp, wp.getPlane());
+                if (pts.isEmpty())
+                    continue;
+                var p = pts.get(0);
+
+                renderLineDots(graphics, wp, config.routeDotColor(), idx, p);
+            }
+        }
+    }
+
+    private void renderLineDots(Graphics2D graphics, WorldPoint wp, Color color, int i, Point start) {
         final int size = (i == 0 ? 10 : 6);
-        final Color fill = (i == 0 ? new Color(0, 255, 255, 200) : new Color(255, 255, 255, 200));
+        final Color fill = color;
         final Color border = new Color(0, 0, 0, 200);
 
         graphics.setColor(fill);
@@ -202,34 +204,43 @@ public class BearracudaTrialsOverlay extends Overlay {
     }
 
     private void highlightToadFlags(Graphics2D graphics, WorldPoint player) {
-        // Highlight toad flags
+        if (!config.showJubblyToadHighlights()) {
+            return;
+        }
         var toadGameObjects = plugin.getToadFlagToHighlight();
         if (toadGameObjects == null || toadGameObjects.isEmpty()) {
             return;
         }
-
+        Color inRange = config.jubblyToadInRangeColor();
+        Color outRange = config.jubblyToadOutOfRangeColor();
         for (var toadGameObject : toadGameObjects) {
-            var color = toadGameObject.getWorldLocation().distanceTo(player) < 15.2 ? GREEN : RED;
+            var color = toadGameObject.getWorldLocation().distanceTo(player) < 15.2 ? inRange : outRange;
             modelOutlineRenderer.drawOutline(toadGameObject, 4, color, 2);
         }
     }
 
     private void highlightCrates(Graphics2D graphics) {
+        if (!config.showCrateHighlights()) {
+            return;
+        }
         var crates = plugin.getTrialCratesById();
-
+        Color crateColor = config.crateHighlightColor();
         for (var crate : crates.values()) {
-            modelOutlineRenderer.drawOutline(crate, 2, Color.YELLOW, 2);
+            modelOutlineRenderer.drawOutline(crate, 2, crateColor, 2);
         }
     }
 
     private void highlightBoosts(Graphics2D graphics) {
+        if (!config.showBoostHighlights()) {
+            return;
+        }
         var boosts = plugin.getTrialBoostsById();
-
+        Color boostColor = config.boostHighlightColor();
         for (var boostList : boosts.values()) {
             for (var boost : boostList) {
                 var poly = boost.getCanvasTilePoly();
                 if (poly != null) {
-                    OverlayUtil.renderPolygon(graphics, poly, Color.BLUE);
+                    OverlayUtil.renderPolygon(graphics, poly, boostColor);
                 }
             }
         }
@@ -268,10 +279,9 @@ public class BearracudaTrialsOverlay extends Overlay {
     }
 
     private void highlightTrimmableSails(Graphics2D graphics) {
-        if (!plugin.isNeedsTrim()) {
+        if (!config.showTrimSailHighlights() || !plugin.isNeedsTrim()) {
             return;
         }
-
         var sail = plugin.getSailGameObject();
         if (sail == null || sail.getWorldView() == null) {
             return;
@@ -280,8 +290,7 @@ public class BearracudaTrialsOverlay extends Overlay {
         if (hull == null) {
             return;
         }
-
-        OverlayUtil.renderPolygon(graphics, hull, GREEN);
+        OverlayUtil.renderPolygon(graphics, hull, config.trimSailHighlightColor());
     }
 
 }

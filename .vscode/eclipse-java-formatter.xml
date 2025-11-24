@@ -16,8 +16,14 @@
     <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_allocation_expression" value="48"/>
     <setting id="org.eclipse.jdt.core.formatter.wrap_array_initializers" value="wrap_always"/>
     <setting id="org.eclipse.jdt.core.formatter.alignment_for_array_initializer" value="48"/>
+    <!-- Annotation argument alignment: use NEXT_PER_LINE (32) + NEXT_SHIFTED (16) = 48 -->
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotation_arguments" value="48"/>
+    <!-- Force wrap before each annotation argument if any exceed line length threshold -->
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_annotation_arguments" value="true"/>
     <!-- Prevent formatter from rejoining already wrapped lines -->
     <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>
+    <!-- Force a newline after every method-level annotation so stacked annotations (@Alpha, @ConfigItem) are on separate lines -->
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_method" value="insert"/>
     
     <!-- Indent case labels one level deeper than the switch header -->
     <setting id="org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_switch" value="true"/>
