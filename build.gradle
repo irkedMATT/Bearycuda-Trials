@@ -13,9 +13,10 @@ def runeLiteVersion = project.findProperty('runeLiteVersion') ?: '1.12.6'
 
 dependencies {
     compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
-    runtimeOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+    
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
     testImplementation 'junit:junit:4.12'
     testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
     testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
@@ -57,6 +58,19 @@ tasks.register('copyRuntimeDeps', Copy) {
     }
     from(configurations.runtimeClasspath.filter { it.isFile() })
     into("${projectDir}/lib")
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    // Do not include duplicate files (e.g. LICENSE) when copying runtime deps
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Ensure jar packaging excludes duplicate entries such as repeated META-INF/LICENSE
+tasks.named('jar') {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Global safeguard: any Copy task defaults to excluding duplicates unless overridden
+tasks.withType(Copy).configureEach {
+    if (duplicatesStrategy == null || duplicatesStrategy == DuplicatesStrategy.INCLUDE) {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 }
 
