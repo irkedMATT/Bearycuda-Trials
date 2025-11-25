@@ -17,6 +17,7 @@ import com.datbear.data.ToadFlagGameObject;
 import com.datbear.data.TrialInfo;
 import com.datbear.data.TrialLocations;
 import com.datbear.data.TrialRoute;
+import com.datbear.ui.RouteModificationHelper;
 import com.google.common.base.Strings;
 import com.google.inject.Provides;
 
@@ -85,10 +86,12 @@ public class BearycudaTrialsPlugin extends Plugin {
     private final String MENU_OPTION_START_PREVIOUS_RANK = "start-previous";
     private final String MENU_OPTION_QUICK_RESET = "quick-reset";
     private final String MENU_OPTION_STOP_NAVIGATING = "stop-navigating";
+    private final String MENU_OPTION_UNSET = "un-set";
 
     private static final int VISIT_TOLERANCE = 10;
 
     private List<String> FirstMenuEntries = new ArrayList<String>();
+    private List<String> DeprioritizeMenuEntriesDuringTrial = new ArrayList<String>();
     private List<String> RemoveMenuEntriesDuringTrial = new ArrayList<String>();
 
     @Getter(AccessLevel.PACKAGE)
@@ -130,6 +133,8 @@ public class BearycudaTrialsPlugin extends Plugin {
         //log.info("Bearycuda Trials Plugin started!");
         overlayManager.add(overlay);
         overlayManager.add(panel);
+
+        //menu entries
         if (config.enableStartPreviousRankLeftClick()) {
             FirstMenuEntries.add(MENU_OPTION_START_PREVIOUS_RANK);
         }
@@ -137,10 +142,10 @@ public class BearycudaTrialsPlugin extends Plugin {
             FirstMenuEntries.add(MENU_OPTION_QUICK_RESET);
         }
         if (config.disableStopNavigating()) {
-            RemoveMenuEntriesDuringTrial.add(MENU_OPTION_STOP_NAVIGATING);
+            DeprioritizeMenuEntriesDuringTrial.add(MENU_OPTION_STOP_NAVIGATING);
         }
-        if (config.showGwenithGlideRoutes()) {
-            TrialRoute.AddGwenithGlideRoutes();
+        if (config.disableUnsetSail()) {
+            DeprioritizeMenuEntriesDuringTrial.add(MENU_OPTION_UNSET);
         }
     }
 
@@ -263,6 +268,8 @@ public class BearycudaTrialsPlugin extends Plugin {
 
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event) {
+        RouteModificationHelper.handleMenuOptionClicked(event, client, getActiveTrialRoute(), lastMenuCanvasPosition, lastVisitedIndex);
+
         if (!config.showDebugMenuCopyTileOptions()) {
             return;
         }
@@ -353,12 +360,6 @@ public class BearycudaTrialsPlugin extends Plugin {
             return;
         }
 
-        if (config.showGwenithGlideRoutes() && TrialRoute.AllTrialRoutes.stream().noneMatch(x -> x.Location == TrialLocations.GwenithGlide)) {
-            TrialRoute.AddGwenithGlideRoutes();
-        } else if (!config.showGwenithGlideRoutes()) {
-            TrialRoute.AllTrialRoutes.removeIf(x -> x.Location == TrialLocations.GwenithGlide);
-        }
-
         if (config.enableStartPreviousRankLeftClick()) {
             if (FirstMenuEntries.stream().noneMatch(x -> x.equals(MENU_OPTION_START_PREVIOUS_RANK))) {
                 FirstMenuEntries.add(MENU_OPTION_START_PREVIOUS_RANK);
@@ -380,12 +381,22 @@ public class BearycudaTrialsPlugin extends Plugin {
         }
 
         if (config.disableStopNavigating()) {
-            if (RemoveMenuEntriesDuringTrial.stream().noneMatch(x -> x.equals(MENU_OPTION_STOP_NAVIGATING))) {
-                RemoveMenuEntriesDuringTrial.add(MENU_OPTION_STOP_NAVIGATING);
+            if (DeprioritizeMenuEntriesDuringTrial.stream().noneMatch(x -> x.equals(MENU_OPTION_STOP_NAVIGATING))) {
+                DeprioritizeMenuEntriesDuringTrial.add(MENU_OPTION_STOP_NAVIGATING);
             }
         } else {
-            if (RemoveMenuEntriesDuringTrial.stream().anyMatch(x -> x.equals(MENU_OPTION_STOP_NAVIGATING))) {
-                RemoveMenuEntriesDuringTrial.remove(MENU_OPTION_STOP_NAVIGATING);
+            if (DeprioritizeMenuEntriesDuringTrial.stream().anyMatch(x -> x.equals(MENU_OPTION_STOP_NAVIGATING))) {
+                DeprioritizeMenuEntriesDuringTrial.remove(MENU_OPTION_STOP_NAVIGATING);
+            }
+        }
+
+        if (config.disableUnsetSail()) {
+            if (DeprioritizeMenuEntriesDuringTrial.stream().noneMatch(x -> x.equals(MENU_OPTION_UNSET))) {
+                DeprioritizeMenuEntriesDuringTrial.add(MENU_OPTION_UNSET);
+            }
+        } else {
+            if (DeprioritizeMenuEntriesDuringTrial.stream().anyMatch(x -> x.equals(MENU_OPTION_UNSET))) {
+                DeprioritizeMenuEntriesDuringTrial.remove(MENU_OPTION_UNSET);
             }
         }
     }
@@ -414,12 +425,20 @@ public class BearycudaTrialsPlugin extends Plugin {
         if (client.isMenuOpen()) {
             return;
         }
+        var entries = client.getMenuEntries();
 
-        var entries = swapMenuEntries(client.getMenuEntries());
+        entries = swapMenuEntries(entries);
         entries = addDebugMenuEntries(entries);
 
+        if (currentTrial != null && !DeprioritizeMenuEntriesDuringTrial.isEmpty()) {
+            entries = deprioritizeMenuEntries(entries, DeprioritizeMenuEntriesDuringTrial);
+        }
         if (currentTrial != null && !RemoveMenuEntriesDuringTrial.isEmpty()) {
             entries = removeMenuEntries(entries, RemoveMenuEntriesDuringTrial);
+        }
+
+        if (currentTrial != null && config.showDebugRouteModificationOptions()) {
+            entries = RouteModificationHelper.addRouteModificationEntries(client, entries, getActiveTrialRoute());
         }
 
         client.setMenuEntries(entries);
@@ -429,7 +448,31 @@ public class BearycudaTrialsPlugin extends Plugin {
         if (entries == null || entries.length == 0 || toRemove == null || toRemove.isEmpty()) {
             return entries;
         }
-        var walkHereEntry = Arrays.stream(entries).filter(x -> x != null && x.getOption().toLowerCase().equals("walk here")).findFirst().orElse(null);
+        var entryList = new ArrayList<MenuEntry>(Arrays.asList(entries));
+        var it = entryList.iterator();
+        while (it.hasNext()) {
+            var menuEntry = it.next();
+            if (menuEntry == null) {
+                continue;
+            }
+            var opt = menuEntry.getOption();
+            if (opt == null) {
+                continue;
+            }
+            if (toRemove.stream().anyMatch(x -> opt.toLowerCase().contains(x))) {
+                it.remove();
+            }
+        }
+        return entryList.toArray(new MenuEntry[0]);
+    }
+
+    private MenuEntry[] deprioritizeMenuEntries(MenuEntry[] entries, Collection<String> toRemove) {
+        if (entries == null || entries.length == 0 || toRemove == null || toRemove.isEmpty()) {
+            return entries;
+        }
+        var walkHereEntry = Arrays.stream(entries)
+                .filter(x -> x != null && x.getOption().toLowerCase().equals("walk here") || x.getOption().toLowerCase().equals("set heading"))
+                .findFirst().orElse(null);
         var entryList = new ArrayList<MenuEntry>(Arrays.asList(entries));
         var it = entryList.iterator();
         while (it.hasNext()) {
@@ -447,12 +490,38 @@ public class BearycudaTrialsPlugin extends Plugin {
                     var currIdx = entryList.indexOf(menuEntry);
                     entryList.set(walkIdx, menuEntry);
                     entryList.set(currIdx, walkHereEntry);
-                } else {
-                    it.remove();
                 }
             }
         }
         return entryList.toArray(new MenuEntry[0]);
+    }
+
+    private MenuEntry[] swapMenuEntries(MenuEntry[] entries) {
+        if (entries == null || entries.length == 0) {
+            return entries;
+        }
+        var toMove = new ArrayList<MenuEntry>();
+        var entriesAsList = new ArrayList<>(Arrays.asList(entries));
+        var it = entriesAsList.iterator();
+        while (it.hasNext()) {
+            var menuEntry = it.next();
+            if (menuEntry == null) {
+                continue;
+            }
+            var opt = menuEntry.getOption();
+            if (opt == null) {
+                continue;
+            }
+            if (FirstMenuEntries.stream().anyMatch(x -> opt.toLowerCase().contains(x))) {
+                toMove.add(menuEntry);
+                it.remove();
+            }
+        }
+        if (!toMove.isEmpty()) {
+            entriesAsList.addAll(toMove);
+        }
+        entries = entriesAsList.toArray(new MenuEntry[0]);
+        return entries;
     }
 
     private MenuEntry[] addDebugMenuEntries(MenuEntry[] entries) {
@@ -594,40 +663,7 @@ public class BearycudaTrialsPlugin extends Plugin {
         return portalDirection;
     }
 
-    private MenuEntry[] swapMenuEntries(MenuEntry[] entries) {
-        if (entries == null || entries.length == 0) {
-            return entries;
-        }
-        var toMove = new ArrayList<MenuEntry>();
-        var entriesAsList = new ArrayList<>(Arrays.asList(entries));
-        var it = entriesAsList.iterator();
-        while (it.hasNext()) {
-            var menuEntry = it.next();
-            if (menuEntry == null) {
-                continue;
-            }
-            var opt = menuEntry.getOption();
-            if (opt == null) {
-                continue;
-            }
-            if (FirstMenuEntries.stream().anyMatch(x -> opt.toLowerCase().contains(x))) {
-                toMove.add(menuEntry);
-                it.remove();
-            }
-        }
-        if (!toMove.isEmpty()) {
-            entriesAsList.addAll(toMove);
-        }
-        entries = entriesAsList.toArray(new MenuEntry[0]);
-        return entries;
-    }
-
-    public List<GameObject> getCachedGameObjectsForId(int id) {
-        var list = toadFlagsById.get(id);
-        return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
-    }
-
-    public List<GameObject> getCachedGameObjectsForIds(Set<Integer> ids) {
+    public List<GameObject> getToadFlagGameObjectsForIds(Set<Integer> ids) {
         var out = new ArrayList<GameObject>();
         if (ids == null || ids.isEmpty()) {
             return out;
@@ -700,7 +736,7 @@ public class BearycudaTrialsPlugin extends Plugin {
         if (nextToadIdx >= 0 && nextToadIdx < route.ToadOrder.size()) {
             var nextToadColor = route.ToadOrder.get(nextToadIdx);
             var nextToadGameObject = ToadFlagGameObject.getByColor(nextToadColor);
-            List<GameObject> cached = getCachedGameObjectsForIds(nextToadGameObject.GameObjectIds);
+            List<GameObject> cached = getToadFlagGameObjectsForIds(nextToadGameObject.GameObjectIds);
             if (!cached.isEmpty()) {
                 return cached;
             }

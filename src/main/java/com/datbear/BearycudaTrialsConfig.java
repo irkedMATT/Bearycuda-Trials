@@ -16,6 +16,7 @@ public interface BearycudaTrialsConfig extends Config {
     @ConfigSection(name = "Debug", description = "Debugging options (menu items, extra overlays)", position = 3, closedByDefault = true)
     String debug = "debug";
 
+    //outlines
     @ConfigItem(keyName = "showRouteLines", name = "Show route lines", description = "Toggle drawing of the route polyline", section = outlines, position = 2)
     default boolean showRouteLines() {
         return true;
@@ -87,6 +88,29 @@ public interface BearycudaTrialsConfig extends Config {
         return new Color(255, 0, 0, 150);
     }
 
+    @ConfigItem(keyName = "showPortalRouteArrows", name = "Show portal route arrows", description = "Toggle showing route direction arrows when near portals", section = outlines, position = 15)
+    default boolean showPortalRouteArrows() {
+        return true;
+    }
+
+    @Alpha
+    @ConfigItem(keyName = "portalRouteArrowColor", name = "Portal route arrow color", description = "Color used for portal route direction arrows", section = outlines, position = 16)
+    default Color portalRouteArrowColor() {
+        return new Color(0, 255, 255, 200);
+    }
+
+    @ConfigItem(keyName = "showPortalBoatArrows", name = "Show portal boat arrows", description = "Toggle showing boat direction arrows when near portals", section = outlines, position = 17)
+    default boolean showPortalBoatArrows() {
+        return true;
+    }
+
+    @Alpha
+    @ConfigItem(keyName = "portalBoatArrowColor", name = "Portal boat arrow color", description = "Color used for portal boat direction arrows", section = outlines, position = 18)
+    default Color portalBoatArrowColor() {
+        return new Color(0, 255, 0, 200);
+    }
+
+    //menu swaps
     @ConfigItem(keyName = "enableStartPreviousRankLeftClick", name = "Enable 'Start-previous-rank' left-click", description = "When enabled, this will swap the left-click action on trial npcs to Start-previous-rank", section = menuSwaps, position = 1)
     default boolean enableStartPreviousRankLeftClick() {
         return true;
@@ -102,6 +126,12 @@ public interface BearycudaTrialsConfig extends Config {
         return true;
     }
 
+    @ConfigItem(keyName = "disableUnsetSail", name = "Disable 'Unset sail' left-click during trials", description = "When enabled, this will remove the left-click 'Unset' action on the sail while in a trial", section = menuSwaps, position = 4)
+    default boolean disableUnsetSail() {
+        return true;
+    }
+
+    //debug
     @ConfigItem(keyName = "showDebugOverlay", name = "Show debug overlay", description = "Show debugging info (player/instance coords & next waypoint indices)", section = debug, position = 1)
     default boolean showDebugOverlay() {
         return false;
@@ -112,8 +142,8 @@ public interface BearycudaTrialsConfig extends Config {
         return false;
     }
 
-    @ConfigItem(keyName = "showGwenithGlideRoutes", name = "Show Gwenith Glide routes (INCOMPLETE)", description = "Toggle display of Gwenith Glide routes", section = debug, position = 3)
-    default boolean showGwenithGlideRoutes() {
+    @ConfigItem(keyName = "showDebugRouteModificationOptions", name = "Show debug route modification menu options", description = "Adds '[BT]' menu items for route modifications", section = debug, position = 3)
+    default boolean showDebugRouteModificationOptions() {
         return false;
     }
 

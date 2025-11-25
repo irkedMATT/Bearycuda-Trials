@@ -18,7 +18,7 @@ public class TrialRoute {
     public TrialRoute(TrialLocations location, TrialRanks rank, List<WorldPoint> points) {
         Location = location;
         Rank = rank;
-        Points = points;
+        Points = points == null ? new ArrayList<>() : new ArrayList<>(points); // ensure mutable
         ToadOrder = Collections.emptyList();
         WindMoteIndices = Collections.emptyList();
         PortalDirections = Collections.emptyList();
@@ -501,9 +501,9 @@ public class TrialRoute {
     private static final List<PortalDirection> GwenithGlideSwordfishPortalDirections = List.of(
             new PortalDirection(5, PortalColors.White, Directions.East, Directions.SouthEast),
             new PortalDirection(18, PortalColors.White, Directions.North, Directions.NorthEast),
-            new PortalDirection(25, PortalColors.White, Directions.East, Directions.East),
-            new PortalDirection(33, PortalColors.White, Directions.West, Directions.SouthWest),
-            new PortalDirection(38, PortalColors.White, Directions.West, Directions.NorthWest),
+            new PortalDirection(25, PortalColors.Blue, Directions.East, Directions.East),
+            new PortalDirection(33, PortalColors.Blue, Directions.West, Directions.SouthWest),
+            new PortalDirection(38, PortalColors.Green, Directions.West, Directions.NorthWest),
             new PortalDirection(47, PortalColors.Green, Directions.South, Directions.SouthWest),
             new PortalDirection(52, PortalColors.Yellow, Directions.West, Directions.West),
             new PortalDirection(62, PortalColors.Yellow, Directions.West, Directions.West),
@@ -605,9 +605,9 @@ public class TrialRoute {
     private static final List<PortalDirection> GwenithGlideSharkPortalDirections = List.of(
             new PortalDirection(5, PortalColors.White, Directions.East, Directions.SouthEast),
             new PortalDirection(18, PortalColors.White, Directions.North, Directions.NorthEast),
-            new PortalDirection(25, PortalColors.White, Directions.East, Directions.East),
-            new PortalDirection(33, PortalColors.White, Directions.West, Directions.SouthWest),
-            new PortalDirection(38, PortalColors.White, Directions.West, Directions.NorthWest),
+            new PortalDirection(25, PortalColors.Blue, Directions.East, Directions.East),
+            new PortalDirection(33, PortalColors.Blue, Directions.West, Directions.SouthWest),
+            new PortalDirection(38, PortalColors.Green, Directions.West, Directions.NorthWest),
             new PortalDirection(47, PortalColors.Green, Directions.South, Directions.SouthWest),
             new PortalDirection(52, PortalColors.Yellow, Directions.West, Directions.West),
             new PortalDirection(62, PortalColors.Yellow, Directions.West, Directions.West),
@@ -616,6 +616,7 @@ public class TrialRoute {
 
     private static final List<WorldPoint> GwenithGlideMarlinBestLine = new ArrayList<>(
             List.of(
+                    // Trial Route:
                     new WorldPoint(2257, 3459, 0),
                     new WorldPoint(2259, 3472, 0),
                     new WorldPoint(2271, 3474, 0),
@@ -632,7 +633,7 @@ public class TrialRoute {
                     new WorldPoint(2132, 3277, 0),
                     new WorldPoint(2130, 3280, 0),
                     new WorldPoint(2143, 3291, 0),
-                    new WorldPoint(2157, 3293, 0), //white portal
+                    new WorldPoint(2157, 3293, 0),
                     new WorldPoint(2260, 3509, 0),
                     new WorldPoint(2267, 3519, 0),
                     new WorldPoint(2263, 3531, 0),
@@ -640,7 +641,7 @@ public class TrialRoute {
                     new WorldPoint(2251, 3559, 0),
                     new WorldPoint(2252, 3566, 0),
                     new WorldPoint(2254, 3571, 0),
-                    new WorldPoint(2242, 3574, 0), //blue portal
+                    new WorldPoint(2242, 3574, 0),
                     new WorldPoint(2084, 3215, 0),
                     new WorldPoint(2107, 3214, 0),
                     new WorldPoint(2121, 3198, 0),
@@ -649,12 +650,12 @@ public class TrialRoute {
                     new WorldPoint(2140, 3232, 0),
                     new WorldPoint(2138, 3237, 0),
                     new WorldPoint(2143, 3243, 0),
-                    new WorldPoint(2153, 3247, 0), //blue portal
+                    new WorldPoint(2153, 3247, 0),
                     new WorldPoint(2203, 3574, 0),
                     new WorldPoint(2192, 3568, 0),
                     new WorldPoint(2192, 3548, 0),
                     new WorldPoint(2202, 3534, 0),
-                    new WorldPoint(2198, 3513, 0), //green portal
+                    new WorldPoint(2198, 3513, 0),
                     new WorldPoint(2105, 3140, 0),
                     new WorldPoint(2092, 3145, 0),
                     new WorldPoint(2078, 3158, 0),
@@ -663,13 +664,129 @@ public class TrialRoute {
                     new WorldPoint(2058, 3185, 0),
                     new WorldPoint(2073, 3210, 0),
                     new WorldPoint(2100, 3205, 0),
-                    new WorldPoint(2128, 3172, 0), //green portal, end swordfish
+                    new WorldPoint(2128, 3172, 0),
+                    new WorldPoint(2197, 3490, 0),
+                    new WorldPoint(2192, 3480, 0),
+                    new WorldPoint(2176, 3475, 0),
+                    new WorldPoint(2170, 3465, 0),
+                    new WorldPoint(2158, 3464, 0),
+                    new WorldPoint(2117, 3372, 0),
+                    new WorldPoint(2089, 3374, 0),
+                    new WorldPoint(2079, 3388, 0),
+                    new WorldPoint(2083, 3394, 0),
+                    new WorldPoint(2097, 3396, 0),
+                    new WorldPoint(2103, 3405, 0),
+                    new WorldPoint(2100, 3410, 0),
+                    new WorldPoint(2093, 3417, 0),
+                    new WorldPoint(2095, 3433, 0),
+                    new WorldPoint(2110, 3439, 0),
+                    new WorldPoint(2117, 3439, 0),
+                    new WorldPoint(2146, 3464, 0),
+                    new WorldPoint(2111, 3464, 0),
+                    new WorldPoint(2105, 3471, 0),
+                    new WorldPoint(2107, 3492, 0),
+                    new WorldPoint(2115, 3496, 0),
+                    new WorldPoint(2126, 3495, 0),
+                    new WorldPoint(2134, 3483, 0),
+                    new WorldPoint(2144, 3483, 0),
+                    new WorldPoint(2149, 3493, 0),
+                    new WorldPoint(2149, 3502, 0),
+                    new WorldPoint(2160, 3508, 0),
+                    new WorldPoint(2250, 3633, 0),
+                    new WorldPoint(2241, 3629, 0),
+                    new WorldPoint(2232, 3617, 0),
+                    new WorldPoint(2230, 3609, 0),
+                    new WorldPoint(2228, 3600, 0),
+                    new WorldPoint(2220, 3593, 0),
+                    new WorldPoint(2192, 3599, 0),
+                    new WorldPoint(2166, 3589, 0),
+                    new WorldPoint(2151, 3597, 0),
+                    new WorldPoint(2125, 3598, 0),
+                    new WorldPoint(2109, 3592, 0),
+                    new WorldPoint(2099, 3582, 0),
+                    new WorldPoint(2104, 3574, 0),
+                    new WorldPoint(2174, 3508, 0),
+                    new WorldPoint(2189, 3508, 0),
+                    new WorldPoint(2208, 3508, 0),
+                    new WorldPoint(2220, 3516, 0),
+                    new WorldPoint(2220, 3526, 0),
+                    new WorldPoint(2216, 3538, 0),
+                    new WorldPoint(2222, 3547, 0),
+                    new WorldPoint(2224, 3570, 0),
+                    new WorldPoint(2218, 3580, 0),
+                    new WorldPoint(2208, 3584, 0),
+                    new WorldPoint(2108, 3560, 0),
+                    new WorldPoint(2097, 3558, 0),
+                    new WorldPoint(2092, 3542, 0),
+                    new WorldPoint(2105, 3520, 0),
+                    new WorldPoint(2096, 3504, 0),
+                    new WorldPoint(2090, 3490, 0),
+                    new WorldPoint(2089, 3467, 0),
+                    new WorldPoint(2098, 3446, 0),
+                    new WorldPoint(2105, 3424, 0),
+                    new WorldPoint(2196, 3584, 0),
+                    new WorldPoint(2179, 3580, 0),
+                    new WorldPoint(2174, 3563, 0),
+                    new WorldPoint(2182, 3541, 0),
+                    new WorldPoint(2174, 3535, 0),
+                    new WorldPoint(2166, 3539, 0),
+                    new WorldPoint(2156, 3561, 0),
+                    new WorldPoint(2147, 3580, 0),
+                    new WorldPoint(2142, 3582, 0),
+                    new WorldPoint(2137, 3258, 0),
+                    new WorldPoint(2127, 3285, 0),
+                    new WorldPoint(2124, 3288, 0),
+                    new WorldPoint(2127, 3297, 0),
+                    new WorldPoint(2132, 3317, 0),
+                    new WorldPoint(2141, 3336, 0),
+                    new WorldPoint(2152, 3346, 0),
+                    new WorldPoint(2146, 3367, 0),
+                    new WorldPoint(2128, 3380, 0),
+                    new WorldPoint(2124, 3368, 0),
+                    new WorldPoint(2126, 3357, 0),
+                    new WorldPoint(2130, 3581, 0),
+                    new WorldPoint(2121, 3582, 0),
+                    new WorldPoint(2118, 3580, 0),
+                    new WorldPoint(2119, 3569, 0),
+                    new WorldPoint(2124, 3557, 0),
+                    new WorldPoint(2126, 3540, 0),
+                    new WorldPoint(2118, 3524, 0),
+                    new WorldPoint(2121, 3515, 0),
+                    new WorldPoint(2131, 3513, 0),
+                    new WorldPoint(2161, 3521, 0),
+                    new WorldPoint(2170, 3523, 0),
+                    new WorldPoint(2105, 3413, 0),
+                    new WorldPoint(2085, 3413, 0),
+                    new WorldPoint(2080, 3419, 0),
+                    new WorldPoint(2081, 3439, 0),
+                    new WorldPoint(2084, 3447, 0),
+                    new WorldPoint(2081, 3455, 0),
+                    new WorldPoint(2084, 3461, 0),
+                    new WorldPoint(2085, 3486, 0),
+                    new WorldPoint(2083, 3519, 0),
+                    new WorldPoint(2072, 3538, 0),
+                    new WorldPoint(2082, 3550, 0),
+                    new WorldPoint(2105, 3543, 0)
 
-                    new WorldPoint(0, 0, 0)//end
             ));
 
     private static final List<PortalDirection> GwenithGlideMarlinPortalDirections = List.of(
-    //
+            new PortalDirection(4, PortalColors.White, Directions.East, Directions.SouthEast),
+            new PortalDirection(16, PortalColors.White, Directions.North, Directions.NorthEast),
+            new PortalDirection(24, PortalColors.Blue, Directions.East, Directions.East),
+            new PortalDirection(33, PortalColors.Blue, Directions.West, Directions.SouthWest),
+            new PortalDirection(38, PortalColors.Green, Directions.West, Directions.NorthWest),
+            new PortalDirection(47, PortalColors.Green, Directions.South, Directions.SouthWest),
+            new PortalDirection(52, PortalColors.Yellow, Directions.West, Directions.West),
+            new PortalDirection(63, PortalColors.Yellow, Directions.West, Directions.West),
+            new PortalDirection(74, PortalColors.Red, Directions.West, Directions.SouthWest),
+            new PortalDirection(87, PortalColors.Red, Directions.East, Directions.East),
+            new PortalDirection(89, PortalColors.Green, Directions.East, Directions.NorthEast),
+            new PortalDirection(97, PortalColors.Black, Directions.West, Directions.West),
+            new PortalDirection(106, PortalColors.Black, Directions.West, Directions.West),
+            new PortalDirection(115, PortalColors.Cyan, Directions.North, Directions.NorthWest),
+            new PortalDirection(126, PortalColors.Cyan, Directions.West, Directions.SouthWest),
+            new PortalDirection(137, PortalColors.Pink, Directions.West, Directions.West)//
     );
 
     public static final List<TrialRoute> AllTrialRoutes = new ArrayList<TrialRoute>(
@@ -679,7 +796,11 @@ public class TrialRoute {
                     new TrialRoute(TrialLocations.TemporTantrum, TrialRanks.Marlin, TemporTantrumMarlinBestLine),
                     new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Swordfish, JubblySwordfishBestLine, JubblySwordfishToadOrder, Collections.emptyList(), null),
                     new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Shark, JubblySharkBestLine, JubblySharkToadOrder, Collections.emptyList(), null),
-                    new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Marlin, JubblyMarlinBestLine, JubblyMarlinToadOrder, JubblyMarlinWindMoteIndices, null)));
+                    new TrialRoute(TrialLocations.JubblyJive, TrialRanks.Marlin, JubblyMarlinBestLine, JubblyMarlinToadOrder, JubblyMarlinWindMoteIndices, null),
+                    new TrialRoute(TrialLocations.GwenithGlide, TrialRanks.Swordfish, GwenithGlideSwordfishBestLine, null, null, GwenithGlideSwordfishPortalDirections),
+                    new TrialRoute(TrialLocations.GwenithGlide, TrialRanks.Shark, GwenithGlideSharkBestLine, null, null, GwenithGlideSharkPortalDirections),
+                    new TrialRoute(TrialLocations.GwenithGlide, TrialRanks.Marlin, GwenithGlideMarlinBestLine, null, null, GwenithGlideMarlinPortalDirections)//
+            ));
 
     public static final void AddGwenithGlideRoutes() {
         AllTrialRoutes.add(new TrialRoute(TrialLocations.GwenithGlide, TrialRanks.Swordfish, GwenithGlideSwordfishBestLine, null, null, GwenithGlideSwordfishPortalDirections));

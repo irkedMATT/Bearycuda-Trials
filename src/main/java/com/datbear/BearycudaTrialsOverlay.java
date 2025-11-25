@@ -419,16 +419,16 @@ public class BearycudaTrialsOverlay extends Overlay {
     }
 
     private void renderPortalArrows(Graphics2D graphics, TrialRoute route) {
-        if (!config.showGwenithGlideRoutes()) {
-            return;
-        }
         var portalDirection = plugin.getVisiblePortalDirection(route);
         if (portalDirection == null) {
             return;
         }
-
-        renderCameraCenterDirection(graphics, config.routeLineColor(), 2, 50, portalDirection.FirstMovementDirection);
-        renderCameraCenterDirection(graphics, Color.GREEN, 2, 50, portalDirection.BoatDirection);
+        if (config.showPortalRouteArrows()) {
+            renderCameraCenterDirection(graphics, config.portalRouteArrowColor(), 2, 50, portalDirection.FirstMovementDirection);
+        }
+        if (config.showPortalBoatArrows()) {
+            renderCameraCenterDirection(graphics, config.portalBoatArrowColor(), 2, 50, portalDirection.BoatDirection);
+        }
     }
 
 }
