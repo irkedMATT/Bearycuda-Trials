@@ -11,9 +11,9 @@
         "${workspaceFolder}/build/resources/test",
         "${workspaceFolder}/build/classes/java/main",
         "${workspaceFolder}/build/resources/main",
-        "${workspaceFolder}/lib/*"
+        "${workspaceFolder}/build/vscode-lib/*"
       ],
-      "preLaunchTask": "Gradle: Copy Runtime Deps",
+      "preLaunchTask": "Gradle: Prepare Java Launch",
       "console": "internalConsole",
       "cwd": "${workspaceFolder}",
       "vmArgs": "-ea -Dfile.encoding=UTF-8",

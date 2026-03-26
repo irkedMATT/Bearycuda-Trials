@@ -4,9 +4,9 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
     maven { url = 'https://repo.runelite.net' }
     mavenCentral()
+    mavenLocal()
 }
 
 def runeLiteVersion = 'latest.release'
@@ -46,18 +46,11 @@ tasks.register('printRuntimeCp') {
     doLast { println sourceSets.main.runtimeClasspath.asPath }
 }
 
-tasks.register('copyRuntimeDeps', Copy) {
+tasks.register('copyRuntimeDeps', Sync) {
     group = 'build'
-    description = 'Copy runtime dependency JARs into lib/ for wildcard classpath use in VS Code.'
-    doFirst {
-        def libDir = file("${projectDir}/lib")
-        if (libDir.exists()) {
-            println "Cleaning existing lib/ contents..."
-            delete libDir.listFiles()
-        }
-    }
-    from(configurations.runtimeClasspath.filter { it.isFile() })
-    into("${projectDir}/lib")
+    description = 'Sync test runtime dependency JARs into build/vscode-lib for VS Code launch classpath use.'
+    from(sourceSets.test.runtimeClasspath.filter { it.isFile() })
+    into("${buildDir}/vscode-lib")
     // Do not include duplicate files (e.g. LICENSE) when copying runtime deps
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
