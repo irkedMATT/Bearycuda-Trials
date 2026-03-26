@@ -428,17 +428,8 @@ public class BearycudaTrialsPlugin extends Plugin {
         }
         toadFlagsById.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 
-        for (var boat : trialBoatsById.values()) {
-            if (event.getWorldView() == boat.getWorldView()) {
-                trialBoatsById.remove(boat.getId());
-            }
-        }
-
-        for (var crate : trialCratesById.values()) {
-            if (event.getWorldView() == crate.getWorldView()) {
-                trialCratesById.remove(crate.getId());
-            }
-        }
+        trialBoatsById.entrySet().removeIf(entry -> event.getWorldView() == entry.getValue().getWorldView());
+        trialCratesById.entrySet().removeIf(entry -> event.getWorldView() == entry.getValue().getWorldView());
 
         for (var boostList : trialBoostsById.values()) {
             boostList.removeIf(obj -> event.getWorldView() == obj.getWorldView());
